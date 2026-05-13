@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tampines Estate Reporter — Review Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1a2f6e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EstateReport">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/style.css">
+<style>
+
+.confirm-page {
+  padding: 14px 14px 130px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* ── Section header ── */
+.sec-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.sec-head-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.sec-head-title {
+  font-size: 11px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.3px;
+}
+.sec-head::after {
+  content: ''; flex: 1; height: 1px; background: var(--border); margin-left: 8px;
+}
+
+/* ── AI Source badge ── */
+.ai-src-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 9px; font-weight: 900; letter-spacing: 0.7px; text-transform: uppercase;
+}
+.ai-src-badge.vision { background: #eff4ff; color: var(--blue); border: 1px solid #c7d7fd; }
+.ai-src-badge.voice  { background: #faf5ff; color: #7c3aed;     border: 1px solid #ddd6fe; }
+.ai-src-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+.vision .ai-src-dot { background: var(--blue); }
+.voice  .ai-src-dot { background: #7c3aed; }
+@keyframes pulse-dot {
+  0%,100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.5); }
+}
+
+/* ══════════════════════
+   PHOTO + VISION AI CARD
+   ══════════════════════ */
+.photo-ai-card {
+  background: var(--card); border-radius: 20px;
+  border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-sm); margin-bottom: 12px;
+}
+.photo-ai-card:last-child { margin-bottom: 0; }
+
+.photo-full {
+  position: relative; width: 100%; aspect-ratio: 4/3; background: #1a2f6e;
+}
+.photo-full img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Scan animation */
+.scan-line {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(45,77,184,0.7), transparent);
+  animation: scanline 1.6s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(45,77,184,0.5);
+}
+@keyframes scanline {
+  0%   { top: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-line.done { display: none; }
+
+/* Overlay badges */
+.photo-num-badge {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(15,31,92,0.78); backdrop-filter: blur(8px);
+  color: #fff; font-size: 9px; font-weight: 900;
+  padding: 4px 10px; border-radius: 20px; letter-spacing: 0.8px;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.photo-ai-badge-wrap {
+  position: absolute; top: 10px; right: 10px;
+}
+
+/* AI result panel below image */
+.ai-result-panel { padding: 14px 16px 16px; }
+.ai-result-title {
+  font-size: 10px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.1px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Skeleton */
+.ai-skeleton { display: flex; flex-direction: column; gap: 8px; }
+.skel-line {
+  height: 12px; border-radius: 6px;
+  background: linear-gradient(90deg,#e8ebf5 25%,#f5f7ff 50%,#e8ebf5 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+.skel-line.w60 { width: 60%; }
+.skel-line.w75 { width: 75%; height: 28px; border-radius: 14px; }
+.skel-line.w40 { width: 40%; }
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Issue rows with confirm/deny */
+.detected-issue-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+.detected-issue-row:last-child { border-bottom: none; }
+.issue-emoji { font-size: 22px; flex-shrink: 0; width: 30px; text-align: center; }
+.issue-label-wrap { flex: 1; min-width: 0; }
+.issue-label-name { font-size: 13px; font-weight: 800; color: var(--text); }
+.issue-label-sub  { font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+.issue-btn-row    { display: flex; gap: 6px; flex-shrink: 0; }
+
+.btn-yes {
+  padding: 7px 11px; border: 1.5px solid #bbf7d0; border-radius: 10px;
+  background: #dcfce7; color: #15803d;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 900;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-yes:active { transform: scale(0.93); }
+.btn-yes.active { background: var(--green); color: #fff; border-color: var(--green); box-shadow: 0 3px 10px rgba(5,150,105,0.3); }
+
+.btn-no {
+  padding: 7px 11px; border: 1.5px solid #fecaca; border-radius: 10px;
+  background: #fee2e2; color: #dc2626;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 900;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-no:active { transform: scale(0.93); }
+.btn-no.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+/* No issues */
+.no-issues-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; color: var(--muted); font-size: 13px; font-weight: 600;
+}
+
+/* Manual add */
+.manual-add-wrap { margin-top: 12px; }
+.manual-add-label {
+  font-size: 10px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px;
+}
+.manual-add-row { display: flex; gap: 7px; }
+.manual-input {
+  flex: 1; padding: 10px 13px;
+  border: 1.5px solid var(--border); border-radius: 12px;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--text); background: var(--bg); outline: none;
+  transition: border-color 0.2s;
+}
+.manual-input:focus { border-color: var(--blue); background: #fff; }
+.manual-input::placeholder { color: var(--muted); font-weight: 600; }
+.manual-add-btn {
+  padding: 10px 15px; border: none; border-radius: 12px;
+  background: var(--navy); color: #fff;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900;
+  cursor: pointer; flex-shrink: 0; transition: transform 0.1s;
+}
+.manual-add-btn:active { transform: scale(0.95); }
+.manual-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.manual-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px 5px 13px;
+  background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 40px;
+  font-size: 11px; font-weight: 800; color: #92400e;
+}
+.chip-del {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; opacity: 0.55; padding: 0; line-height: 1; color: inherit;
+  transition: opacity 0.15s;
+}
+.chip-del:hover { opacity: 1; }
+
+/* ══════════════════════
+   VOICE AI CARD
+   ══════════════════════ */
+.voice-ai-card {
+  background: var(--card); border-radius: 20px;
+  border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.voice-ai-hdr {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: linear-gradient(135deg, #0f1f5c, #1a2f6e);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.voice-hdr-icon {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: rgba(255,255,255,0.13);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.voice-hdr-meta { flex: 1; }
+.voice-hdr-title { font-size: 14px; font-weight: 800; color: #fff; }
+.voice-hdr-sub   { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 600; margin-top: 2px; }
+
+.voice-player-wrap { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.voice-player-wrap audio { width: 100%; border-radius: 10px; outline: none; }
+
+/* Transcript */
+.voice-transcript-block {
+  margin: 12px 16px 0;
+  padding: 11px 14px;
+  background: #f5f7ff; border-left: 3px solid var(--blue);
+  border-radius: 0 12px 12px 0;
+}
+.vt-label { font-size: 9px; font-weight: 900; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.vt-text  { font-size: 13px; font-weight: 600; color: var(--text); font-style: italic; line-height: 1.6; }
+
+/* Transcribing state */
+.transcribing-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.spin-sm {
+  width: 18px; height: 18px; border: 2.5px solid #c7d7fd;
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.8s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.transcribing-txt { font-size: 12px; font-weight: 700; color: var(--blue); }
+
+/* Voice issues panel */
+.voice-issues-panel { padding: 14px 16px 16px; }
+.voice-issues-title {
+  font-size: 10px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.1px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ══════════════════════
+   LOCATION & NOTES
+   ══════════════════════ */
+.plain-card {
+  background: var(--card); border-radius: 20px;
+  border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.plain-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.plain-row:last-child { border-bottom: none; }
+.plain-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0; margin-top: 2px;
+}
+.plain-body { flex: 1; min-width: 0; }
+.plain-label {
+  font-size: 9px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.1px; margin-bottom: 5px;
+}
+.plain-input, .plain-textarea {
+  width: 100%; background: transparent; border: none; outline: none;
+  font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+  color: var(--text); padding: 0; line-height: 1.5;
+}
+.plain-textarea { resize: none; min-height: 38px; overflow: hidden; }
+.plain-input::placeholder, .plain-textarea::placeholder { color: var(--muted); font-weight: 600; }
+.plain-hint { font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 3px; opacity: 0.75; }
+.plain-pencil { font-size: 14px; opacity: 0.4; flex-shrink: 0; }
+
+/* Info readonly */
+.info-card {
+  background: var(--card); border-radius: 20px;
+  border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.info-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+}
+.info-row:last-child { border-bottom: none; }
+.info-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.info-body { flex: 1; }
+.info-label { font-size: 9px; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+.info-val   { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+/* ══════════════════════
+   FOOTER / SUBMIT
+   ══════════════════════ */
+.confirm-footer {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  padding: 12px 14px 28px;
+  background: linear-gradient(to top, var(--bg) 65%, transparent); z-index: 80;
+}
+.submit-btn {
+  width: 100%; padding: 18px; background: var(--navy); color: #fff;
+  border: none; border-radius: 16px;
+  font-family: 'Nunito', sans-serif; font-size: 17px; font-weight: 900;
+  cursor: pointer; letter-spacing: 0.3px;
+  box-shadow: 0 6px 24px rgba(15,31,92,0.35);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.submit-btn:active   { transform: scale(0.97); }
+.submit-btn:disabled { background: var(--muted); box-shadow: none; cursor: not-allowed; }
+.back-link {
+  text-align: center; margin-top: 10px;
+  font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer;
+}
+.back-link:active { color: var(--navy); }
+
+/* ══════════════════════
+   LOADING OVERLAY
+   ══════════════════════ */
+.confirm-loading {
+  position: fixed; inset: 0; background: rgba(10,18,60,0.93);
+  z-index: 300; display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  backdrop-filter: blur(6px);
+}
+.confirm-loading.show { display: flex; }
+.loading-spinner-lg {
+  width: 58px; height: 58px;
+  border: 5px solid rgba(255,255,255,0.12); border-top-color: var(--gold);
+  border-radius: 50%; animation: spin 0.9s linear infinite;
+}
+.loading-title { font-size: 18px; font-weight: 800; color: #fff; }
+.loading-steps { display: flex; flex-direction: column; gap: 10px; width: 265px; }
+.lstep {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px;
+  background: rgba(255,255,255,0.07); font-size: 13px; font-weight: 700;
+  color: rgba(255,255,255,0.38); transition: all 0.3s;
+}
+.lstep.active { background: rgba(255,255,255,0.14); color: #fff; }
+.lstep-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0;
+}
+.lstep.active .lstep-dot { background: var(--gold); box-shadow: 0 0 0 4px rgba(240,165,0,0.22); animation: pulse-dot 1.4s ease-in-out infinite; }
+
+/* Error */
+.confirm-error {
+  background: #fff5f5; border: 1.5px solid #fecaca; border-radius: 14px;
+  padding: 14px 16px; font-size: 13px; font-weight: 700; color: var(--red); display: none;
+}
+.confirm-error.show { display: block; }
+
+/* Empty */
+.empty-state { text-align: center; padding: 60px 24px; }
+.empty-icon  { font-size: 52px; margin-bottom: 14px; }
+.empty-title { font-size: 18px; font-weight: 900; color: var(--navy); margin-bottom: 6px; }
+.empty-sub   { font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.55; }
+.empty-btn {
+  margin-top: 20px; padding: 14px 28px;
+  background: var(--navy); color: #fff; border: none; border-radius: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800; cursor: pointer;
+}
+
+.no-photo-placeholder {
+  background: linear-gradient(135deg,#e8ebf5,#d4d9ee);
+  height: 130px; border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div class="confirm-loading" id="confirmLoading">
+  <div class="loading-spinner-lg"></div>
+  <div class="loading-title">Sending your report…</div>
+  <div class="loading-steps">
+    <div class="lstep active" id="ls1"><div class="lstep-dot"></div> 🎙️ Reading your voice</div>
+    <div class="lstep"        id="ls2"><div class="lstep-dot"></div> 📷 Analysing photo</div>
+    <div class="lstep"        id="ls3"><div class="lstep-dot"></div> 📍 Checking location</div>
+    <div class="lstep"        id="ls4"><div class="lstep-dot"></div> 🏢 Routing to department</div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <img class="header-logo" src="/static/icon-192.png" alt="App Icon"/>
+  <div class="header-title">
+    <h1>Review Your Report</h1>
+    <p>Check &amp; confirm before sending</p>
+  </div>
+</header>
+
+<!-- ═══ PAGE ═══ -->
+<div class="confirm-page" id="confirmPage">
+
+  <!-- ── 1. PHOTOS + VISION AI ── -->
+  <div>
+    <div class="sec-head">
+      <div class="sec-head-icon" style="background:#eff4ff;">📷</div>
+      <div class="sec-head-title">Photos &amp; Vision AI</div>
+    </div>
+    <div id="photoCards">
+      <div class="no-photo-placeholder">
+        <span style="font-size:30px;opacity:0.4;">📷</span>
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">No photo attached</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. VOICE + VOICE AI ── -->
+  <div>
+    <div class="sec-head">
+      <div class="sec-head-icon" style="background:#faf5ff;">🎙️</div>
+      <div class="sec-head-title">Voice &amp; Voice AI</div>
+    </div>
+    <div class="voice-ai-card" id="voiceCard">
+      <div style="display:flex;align-items:center;gap:10px;padding:14px;color:var(--muted);font-size:13px;font-weight:600;">
+        <span style="font-size:22px;opacity:0.4;">🎤</span> No voice recording attached
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. LOCATION ── -->
+  <div>
+    <div class="sec-head">
+      <div class="sec-head-icon" style="background:#fffbeb;">📍</div>
+      <div class="sec-head-title">Location</div>
+    </div>
+    <div class="plain-card">
+      <div class="plain-row">
+        <div class="plain-icon" style="background:#fffbeb;">📍</div>
+        <div class="plain-body">
+          <div class="plain-label">Where is the issue?</div>
+          <input class="plain-input" id="fieldLocation" type="text"
+            placeholder="e.g. Blk 456 Tampines St 42, Level 3"/>
+          <div class="plain-hint">Add floor or unit number if relevant</div>
+        </div>
+        <div class="plain-pencil">✏️</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. ADDITIONAL NOTES ── -->
+  <div>
+    <div class="sec-head">
+      <div class="sec-head-icon" style="background:#faf5ff;">💬</div>
+      <div class="sec-head-title">Additional Notes <span style="opacity:0.5;font-weight:600;">(optional)</span></div>
+    </div>
+    <div class="plain-card">
+      <div class="plain-row">
+        <div class="plain-icon" style="background:#faf5ff;">💬</div>
+        <div class="plain-body">
+          <div class="plain-label">Anything else for the agency?</div>
+          <textarea class="plain-textarea" id="fieldNotes" rows="2"
+            placeholder="How long has the issue been there? Is it a safety risk?…"
+            oninput="autoResize(this)"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. SUBMITTED BY ── -->
+  <div>
+    <div class="sec-head">
+      <div class="sec-head-icon" style="background:#f0fdf4;">👤</div>
+      <div class="sec-head-title">Submitted by</div>
+    </div>
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-icon" style="background:#f0fdf4;">👤</div>
+        <div class="info-body"><div class="info-label">Name</div><div class="info-val" id="fieldName">—</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon" style="background:#eff4ff;">📱</div>
+        <div class="info-body"><div class="info-label">WhatsApp</div><div class="info-val" id="fieldPhone">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-error" id="confirmError"></div>
+
+</div><!-- /confirm-page -->
+
+<!-- ═══ FOOTER ═══ -->
+<div class="confirm-footer">
+  <button class="submit-btn" id="submitBtn" onclick="confirmAndSend()">
+    <span>📤</span><span>Confirm &amp; Send Report</span><span>→</span>
+  </button>
+  <div class="back-link" onclick="history.back()">← Go back and change</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════════
+const ISSUE_ICONS = {
+  flooding:'💧', fire_hazard:'🔥', broken_pipe:'🔧', rat:'🐀',
+  pigeon:'🐦', plastic_litter:'🗑️', food_waste:'🗑️', litter:'🗑️',
+  illegal_dump:'🚮', fallen_tree:'🌳', overflowing_bin:'🗑️',
+  broken_drain:'🚰', streetlight_fault:'💡', graffiti:'🎨',
+  renovation_noise:'🔨', mosquito_breeding:'🦟', illegal_parking:'🚗',
+  overgrown_grass:'🌿', broken_railing:'⚠️', lift_fault:'🛗',
+  ceiling_leak:'💧', stagnant_water:'💦', road_crack:'🛣️',
+  wall_crack:'🧱', broken_playground:'🛝', bulky_item:'📦',
+  high_rise_litter:'🏢', bee_nest:'🐝', cockroach:'🪳',
+  stray_cat:'🐱', smoke_nuisance:'💨', pmd:'🛴',
+  abandoned_vehicle:'🚗', dead_tree:'🌲', dry_leaves_accumulation:'🍂',
+  choked_drain:'🚰', manhole_overflow:'💧', blocked_exit:'🚪',
+  broken_bench:'🪑', broken_shelter:'🏠', broken_sign:'🪧'
+};
+const SLA_MAP = {
+  flooding:'IMMEDIATE', fire_hazard:'IMMEDIATE', blocked_exit:'IMMEDIATE',
+  bee_nest:'4 hours', lift_fault:'4 hours', broken_pipe:'4 hours',
+  overflowing_bin:'4 hours', choked_drain:'4 hours',
+  litter:'24 hours', illegal_dump:'24 hours', mosquito_breeding:'24 hours',
+  overgrown_grass:'3 working days', graffiti:'3 working days'
+};
+
+function issueIcon(l)  { return ISSUE_ICONS[l] || '📌'; }
+function issueLabel(l) { return l.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase()); }
+function issueSLA(l)   { return SLA_MAP[l] || ''; }
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let pendingReport = null;
+let audioBlob     = null;
+// Each item: { label, confirmed }
+const visionIssues = [];  // per photo detected
+const voiceIssues  = [];  // from voice
+const manualItems  = [];  // user-typed
+
+// ══════════════════════════════════════════════════════════
+//  AUTH GUARD
+// ══════════════════════════════════════════════════════════
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('tampines_profile')||'null'); } catch(e){ return null; }
+}
+(function() {
+  const p = getProfile();
+  if (!p || !p.name || !p.phone) window.location.replace('/login.html');
+})();
+
+// ══════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const raw = sessionStorage.getItem('tampines_pending_report');
+    if (!raw) { showEmptyState(); return; }
+    pendingReport = JSON.parse(raw);
+  } catch(e) { showEmptyState(); return; }
+
+  const profile = getProfile();
+  if (profile) {
+    document.getElementById('fieldName').textContent  = profile.name;
+    document.getElementById('fieldPhone').textContent = profile.phone;
+  }
+  if (pendingReport.location) {
+    document.getElementById('fieldLocation').value = pendingReport.location;
+  } else if (profile && profile.homeAddress) {
+    document.getElementById('fieldLocation').value = profile.homeAddress;
+  }
+
+  renderPhotoCards();
+  restoreAudio();
+});
+
+function showEmptyState() {
+  document.getElementById('confirmPage').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">No pending report</div>
+      <div class="empty-sub">Go back to home and take a photo or record a voice note first.</div>
+      <button class="empty-btn" onclick="window.location.href='/home.html'">← Back to Home</button>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  PHOTOS → VISION AI
+// ══════════════════════════════════════════════════════════
+function renderPhotoCards() {
+  const thumbs = pendingReport ? (pendingReport.thumbnails||[]) : [];
+  const container = document.getElementById('photoCards');
+
+  if (!thumbs.length) {
+    container.innerHTML = `<div class="no-photo-placeholder"><span style="font-size:30px;opacity:0.4;">📷</span><span style="font-size:12px;font-weight:700;color:var(--muted);">No photo attached</span></div>`;
+    return;
+  }
+
+  container.innerHTML = thumbs.map((src, i) => `
+    <div class="photo-ai-card" id="pac_${i}">
+      <div class="photo-full">
+        <img src="${src}" alt="Photo ${i+1}"/>
+        <div class="scan-line" id="scan_${i}"></div>
+        <div class="photo-num-badge">${i===0?'MAIN PHOTO':'PHOTO '+(i+1)}</div>
+        <div class="photo-ai-badge-wrap">
+          <span class="ai-src-badge vision"><div class="ai-src-dot"></div>Vision AI</span>
+        </div>
+      </div>
+      <div class="ai-result-panel">
+        <div class="ai-result-title">
+          🔍 Issues detected by AI
+        </div>
+        <div class="ai-skeleton" id="skel_${i}">
+          <div class="skel-line"></div>
+          <div class="skel-line w75"></div>
+          <div class="skel-line w40"></div>
+        </div>
+        <div id="vilist_${i}"></div>
+        <div id="vimanual_${i}" style="display:none;">
+          <div class="manual-add-wrap">
+            <div class="manual-add-label">✏️ Not correct? Add the real issue:</div>
+            <div class="manual-add-row">
+              <input class="manual-input" id="viinput_${i}"
+                placeholder="e.g. broken bench, litter…"
+                onkeydown="if(event.key==='Enter')addManual('vi',${i})"/>
+              <button class="manual-add-btn" onclick="addManual('vi',${i})">Add</button>
+            </div>
+            <div class="manual-chips" id="vichips_${i}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  thumbs.forEach((src, i) => analyzePhoto(src, i));
+}
+
+async function analyzePhoto(dataURI, idx) {
+  try {
+    const blob = await dataURItoBlob(dataURI);
+    const fd   = new FormData();
+    fd.append('image', blob, `photo_${idx+1}.jpg`);
+
+    const res  = await fetch('/analyze', { method:'POST', body:fd });
+    const data = await res.json();
+
+    const labels = (data.image_result && data.image_result.detected_labels)
+      ? data.image_result.detected_labels
+      : (data.analysis ? (data.analysis.final_labels||[]) : []);
+    const desc = data.image_result ? (data.image_result.description||'') : '';
+
+    stopScan(idx);
+    hideSkel(idx);
+    renderVisionIssues(idx, labels, desc);
+
+    // push to global state (all confirmed by default)
+    labels.forEach((l,li) => visionIssues.push({ label:l, idx, li, confirmed:true }));
+
+  } catch(e) {
+    stopScan(idx); hideSkel(idx);
+    const el = document.getElementById('vilist_'+idx);
+    if (el) el.innerHTML = `<div class="no-issues-row"><span style="font-size:18px;opacity:0.4;">⚠️</span> Could not analyse photo</div>`;
+    showManualSection('vi', idx);
+  }
+}
+
+function stopScan(idx) {
+  const el = document.getElementById('scan_'+idx);
+  if (el) el.classList.add('done');
+}
+function hideSkel(idx) {
+  const el = document.getElementById('skel_'+idx);
+  if (el) el.style.display = 'none';
+}
+
+function renderVisionIssues(idx, labels, desc) {
+  const listEl = document.getElementById('vilist_'+idx);
+  if (!listEl) return;
+
+  if (!labels.length) {
+    listEl.innerHTML = `<div class="no-issues-row"><span style="font-size:18px;opacity:0.4;">🤔</span> No issues detected in this photo</div>`;
+    showManualSection('vi', idx);
+    return;
+  }
+
+  listEl.innerHTML = labels.map((l, li) => `
+    <div class="detected-issue-row" id="vir_${idx}_${li}">
+      <div class="issue-emoji">${issueIcon(l)}</div>
+      <div class="issue-label-wrap">
+        <div class="issue-label-name">${issueLabel(l)}</div>
+        ${issueSLA(l)?`<div class="issue-label-sub">⏱ Response: ${issueSLA(l)}</div>`:''}
+      </div>
+      <div class="issue-btn-row">
+        <button class="btn-yes active" id="vy_${idx}_${li}" onclick="setVision(${idx},${li},'yes')">✓ Yes</button>
+        <button class="btn-no"         id="vn_${idx}_${li}" onclick="setVision(${idx},${li},'no')">✗ No</button>
+      </div>
+    </div>
+  `).join('');
+
+  showManualSection('vi', idx);
+}
+
+function setVision(idx, li, action) {
+  const yBtn  = document.getElementById(`vy_${idx}_${li}`);
+  const nBtn  = document.getElementById(`vn_${idx}_${li}`);
+  const rowEl = document.getElementById(`vir_${idx}_${li}`);
+  const item  = visionIssues.find(x=>x.idx===idx && x.li===li);
+
+  if (action === 'yes') {
+    yBtn.classList.add('active'); nBtn.classList.remove('active');
+    if (rowEl) rowEl.style.opacity = '1';
+    if (item) item.confirmed = true;
+  } else {
+    nBtn.classList.add('active'); yBtn.classList.remove('active');
+    if (rowEl) rowEl.style.opacity = '0.4';
+    if (item) item.confirmed = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  VOICE → VOICE AI
+// ══════════════════════════════════════════════════════════
+function restoreAudio() {
+  const voiceCard = document.getElementById('voiceCard');
+  const b64 = sessionStorage.getItem('tampines_pending_audio');
+
+  if (!b64) {
+    voiceCard.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:14px;color:var(--muted);font-size:13px;font-weight:600;"><span style="font-size:22px;opacity:0.4;">🎤</span>No voice recording attached</div>`;
+    return;
+  }
+
+  try {
+    const binary = atob(b64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+    audioBlob = new Blob([bytes],{type:'audio/webm'});
+    const url = URL.createObjectURL(audioBlob);
+
+    voiceCard.innerHTML = `
+      <div class="voice-ai-hdr">
+        <div class="voice-hdr-icon">🎙️</div>
+        <div class="voice-hdr-meta">
+          <div class="voice-hdr-title">Your Voice Recording</div>
+          <div class="voice-hdr-sub">Play to review — AI is analysing it below</div>
+        </div>
+        <span class="ai-src-badge voice" style="flex-shrink:0;"><div class="ai-src-dot"></div>Voice AI</span>
+      </div>
+      <div class="voice-player-wrap">
+        <audio controls src="${url}"></audio>
+      </div>
+      <div class="transcribing-row" id="transcribingRow">
+        <div class="spin-sm"></div>
+        <div class="transcribing-txt">AI is listening and detecting issues…</div>
+      </div>
+      <div id="transcriptArea"></div>
+      <div class="voice-issues-panel" id="voiceIssuesPanel" style="display:none;">
+        <div class="voice-issues-title">
+          🎙️ Issues AI detected from your voice
+          <span class="ai-src-badge voice"><div class="ai-src-dot"></div>Voice AI</span>
+        </div>
+        <div id="voiceIssueList"></div>
+        <div id="voiceManualWrap" style="display:none;margin-top:12px;">
+          <div class="manual-add-wrap">
+            <div class="manual-add-label">✏️ AI got it wrong? Type the real issue:</div>
+            <div class="manual-add-row">
+              <input class="manual-input" id="voinput"
+                placeholder="e.g. choked drain, overgrown grass…"
+                onkeydown="if(event.key==='Enter')addManual('vo',0)"/>
+              <button class="manual-add-btn" onclick="addManual('vo',0)">Add</button>
+            </div>
+            <div class="manual-chips" id="vochips"></div>
+          </div>
+        </div>
+      </div>`;
+
+    transcribeVoice();
+  } catch(e) {
+    voiceCard.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:14px;color:var(--muted);font-size:13px;font-weight:600;"><span style="font-size:22px;opacity:0.4;">⚠️</span>Voice attached (preview unavailable)</div>`;
+  }
+}
+
+async function transcribeVoice() {
+  if (!audioBlob) return;
+  try {
+    const fd = new FormData();
+    fd.append('audio', audioBlob, 'voice.webm');
+    const res  = await fetch('/analyze',{method:'POST',body:fd});
+    const data = await res.json();
+
+    const transcript = data.transcript || '';
+    const labels     = data.analysis ? (data.analysis.final_labels||[]) : [];
+
+    // Hide spinner
+    const tRow = document.getElementById('transcribingRow');
+    if (tRow) tRow.style.display = 'none';
+
+    // Show what user said
+    const area = document.getElementById('transcriptArea');
+    if (area && transcript) {
+      area.innerHTML = `
+        <div class="voice-transcript-block">
+          <div class="vt-label">🎙 What you said</div>
+          <div class="vt-text">"${transcript}"</div>
+        </div>`;
+    }
+
+    // Show issues panel
+    const panel = document.getElementById('voiceIssuesPanel');
+    if (panel) panel.style.display = 'block';
+
+    renderVoiceIssues(labels);
+    labels.forEach((l,li) => voiceIssues.push({label:l,li,confirmed:true}));
+
+  } catch(e) {
+    const tRow = document.getElementById('transcribingRow');
+    if (tRow) tRow.innerHTML = `<span style="color:var(--muted);font-size:12px;font-weight:600;padding:14px 16px;display:block;">⚠️ Could not read voice — add your issue manually</span>`;
+    const panel = document.getElementById('voiceIssuesPanel');
+    if (panel) panel.style.display = 'block';
+    showManualSection('vo', 0);
+  }
+}
+
+function renderVoiceIssues(labels) {
+  const listEl = document.getElementById('voiceIssueList');
+  if (!listEl) return;
+
+  if (!labels.length) {
+    listEl.innerHTML = `<div class="no-issues-row"><span style="font-size:18px;opacity:0.4;">🤔</span> No specific issues detected from voice</div>`;
+    showManualSection('vo', 0);
+    return;
+  }
+
+  listEl.innerHTML = labels.map((l,li) => `
+    <div class="detected-issue-row" id="voir_${li}">
+      <div class="issue-emoji">${issueIcon(l)}</div>
+      <div class="issue-label-wrap">
+        <div class="issue-label-name">${issueLabel(l)}</div>
+        ${issueSLA(l)?`<div class="issue-label-sub">⏱ ${issueSLA(l)}</div>`:''}
+      </div>
+      <div class="issue-btn-row">
+        <button class="btn-yes active" id="voy_${li}" onclick="setVoice(${li},'yes')">✓ Yes</button>
+        <button class="btn-no"         id="von_${li}" onclick="setVoice(${li},'no')">✗ No</button>
+      </div>
+    </div>
+  `).join('');
+
+  showManualSection('vo', 0);
+}
+
+function setVoice(li, action) {
+  const yBtn  = document.getElementById(`voy_${li}`);
+  const nBtn  = document.getElementById(`von_${li}`);
+  const rowEl = document.getElementById(`voir_${li}`);
+  const item  = voiceIssues[li];
+
+  if (action === 'yes') {
+    yBtn.classList.add('active'); nBtn.classList.remove('active');
+    if (rowEl) rowEl.style.opacity = '1';
+    if (item) item.confirmed = true;
+  } else {
+    nBtn.classList.add('active'); yBtn.classList.remove('active');
+    if (rowEl) rowEl.style.opacity = '0.4';
+    if (item) item.confirmed = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  MANUAL ADD
+// ══════════════════════════════════════════════════════════
+function showManualSection(src, idx) {
+  const id = src==='vi' ? `vimanual_${idx}` : 'voiceManualWrap';
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+}
+
+function addManual(src, idx) {
+  const inputId = src==='vi' ? `viinput_${idx}` : 'voinput';
+  const chipsId = src==='vi' ? `vichips_${idx}` : 'vochips';
+  const input   = document.getElementById(inputId);
+  const chips   = document.getElementById(chipsId);
+  if (!input||!chips) return;
+  const val = input.value.trim(); if (!val) return;
+  input.value = '';
+
+  const id = 'mc_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
+  manualItems.push({ id, val });
+
+  const div = document.createElement('div');
+  div.className = 'manual-chip'; div.id = id;
+  div.innerHTML = `✏️ ${val} <button class="chip-del" onclick="removeManual('${id}')">✕</button>`;
+  chips.appendChild(div);
+}
+
+function removeManual(chipId) {
+  const el = document.getElementById(chipId);
+  if (el) el.remove();
+  const i = manualItems.findIndex(x=>x.id===chipId);
+  if (i>-1) manualItems.splice(i,1);
+}
+
+// ══════════════════════════════════════════════════════════
+//  CONFIRM & SEND
+// ══════════════════════════════════════════════════════════
+async function confirmAndSend() {
+  const errEl   = document.getElementById('confirmError');
+  errEl.classList.remove('show');
+
+  const location = document.getElementById('fieldLocation').value.trim();
+  const notes    = document.getElementById('fieldNotes').value.trim();
+  const profile  = getProfile();
+
+  // Collect confirmed labels
+  const confirmedV = [...new Set(visionIssues.filter(x=>x.confirmed).map(x=>x.label))];
+  const confirmedVo= [...new Set(voiceIssues.filter(x=>x.confirmed).map(x=>x.label))];
+  const manuals    = manualItems.map(x=>x.val);
+  const allLabels  = [...new Set([...confirmedV,...confirmedVo,...manuals])];
+
+  const fd = new FormData();
+  if (audioBlob) fd.append('audio', audioBlob, 'voice.webm');
+
+  const thumbs = pendingReport ? (pendingReport.thumbnails||[]) : [];
+  let imgCount = 0;
+  for (let i=0;i<thumbs.length;i++) {
+    try {
+      const blob = await dataURItoBlob(thumbs[i]);
+      fd.append(imgCount===0?'image':`image_${imgCount+1}`, blob, `photo_${i+1}.jpg`);
+      imgCount++;
+    } catch(e) {}
+  }
+
+  if (location) fd.append('location', location);
+
+  let ctx = '';
+  if (allLabels.length) ctx += 'User-confirmed issues: ' + allLabels.join(', ') + '. ';
+  if (manuals.length)   ctx += 'Manually added: ' + manuals.join(', ') + '. ';
+  if (notes)            ctx += notes;
+  if (ctx.trim()) fd.append('extra_context', ctx.trim());
+
+  if (profile) { fd.append('phone', profile.phone||''); fd.append('name', profile.name||''); }
+
+  showLoading();
+
+  try {
+    await delay(500); setStep(1);
+    await delay(350); setStep(2);
+    await delay(300); setStep(3);
+
+    const res  = await fetch('/analyze',{method:'POST',body:fd});
+    const data = await res.json();
+    setStep(4); await delay(400);
+
+    if (data.error) throw new Error(data.error);
+
+    sessionStorage.removeItem('tampines_pending_report');
+    sessionStorage.removeItem('tampines_pending_audio');
+    saveHistory(data, location);
+    sessionStorage.setItem('tampines_success', JSON.stringify(data));
+    window.location.replace('/home.html');
+  } catch(err) {
+    hideLoading();
+    errEl.textContent = '⚠️ '+(err.message||'Something went wrong. Please try again.');
+    errEl.classList.add('show');
+    errEl.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+
+function showLoading() { document.getElementById('confirmLoading').classList.add('show'); document.getElementById('submitBtn').disabled=true; setStep(0); }
+function hideLoading() { document.getElementById('confirmLoading').classList.remove('show'); document.getElementById('submitBtn').disabled=false; }
+function setStep(n) {
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('ls'+i);
+    if(el) el.className='lstep'+(i<=n?' active':'');
+  }
+}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function saveHistory(data, location) {
+  const profile = getProfile();
+  const phone   = profile?profile.phone:'guest';
+  const key     = 'tampines_history_'+phone;
+  const a       = data.analysis||{};
+  const thumbs  = (pendingReport&&pendingReport.thumbnails)||[];
+  const entry   = {
+    caseId:     data.case_id||'—',
+    summary:    a.case_summary||'Report submitted',
+    priority:   a.priority||'LOW',
+    agencies:   (data.routes||[]).map(r=>r.agency).join(', '),
+    location:   location||data.location||'',
+    date:       new Date().toLocaleString('en-SG'),
+    thumbnail:  thumbs[0]||null,
+    transcript: data.transcript||''
+  };
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+  hist.push(entry);
+  localStorage.setItem(key,JSON.stringify(hist));
+}
+
+function dataURItoBlob(dataURI){
+  return new Promise((res,rej)=>{
+    try{
+      const p=dataURI.split(','),mime=p[0].match(/:(.*?);/)[1];
+      const b=atob(p[1]),a=new Uint8Array(b.length);
+      for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i);
+      res(new Blob([a],{type:mime}));
+    }catch(e){rej(e);}
+  });
+}
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+if('serviceWorker'in navigator){navigator.serviceWorker.register('/static/sw.js').catch(()=>{});}
+</script>
+</body>
+</html>

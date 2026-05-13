@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tampines Estate Reporter — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1a2f6e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EstateReport">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<style>
+/* ─── RESET & BASE ─── */
+:root {
+  --navy:   #1a2f6e;
+  --blue:   #2d4db8;
+  --gold:   #f0a500;
+  --green:  #16a34a;
+  --red:    #dc2626;
+  --bg:     #f2f5fc;
+  --card:   #ffffff;
+  --text:   #0f172a;
+  --muted:  #64748b;
+  --border: #cbd5e1;
+  --r:      18px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── ONBOARDING SCREEN ─── */
+.onboard-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, #1a2f6e 0%, #2d4db8 55%, #1e3a8a 100%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 48px 28px 40px;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.onboard-screen.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Decorative blobs */
+.onboard-screen::before {
+  content: '';
+  position: fixed;
+  top: -80px; right: -60px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: rgba(240, 165, 0, 0.15);
+  pointer-events: none;
+}
+.onboard-screen::after {
+  content: '';
+  position: fixed;
+  bottom: -100px; left: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.onboard-logo {
+  width: 88px; height: 88px;
+  border-radius: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+.onboard-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  text-align: center;
+  line-height: 1.25;
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+
+.onboard-sub {
+  font-size: 15px;
+  color: rgba(255,255,255,0.65);
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 36px;
+  font-weight: 600;
+}
+
+.onboard-form {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 24px;
+  padding: 28px 22px;
+  width: 100%;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.onboard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.onboard-field label {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.75);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.onboard-field input {
+  width: 100%;
+  padding: 15px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.onboard-field input::placeholder { color: rgba(255,255,255,0.4); font-weight: 600; }
+.onboard-field input:focus {
+  border-color: var(--gold);
+  background: rgba(255,255,255,0.18);
+}
+
+.phone-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.phone-prefix {
+  padding: 15px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.phone-row input { flex: 1; }
+
+.field-hint {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.onboard-error {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1.5px solid rgba(220, 38, 38, 0.5);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fca5a5;
+  display: none;
+}
+.onboard-error.show { display: block; }
+
+.onboard-btn {
+  width: 100%;
+  padding: 18px;
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  border-radius: 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 20px rgba(240,165,0,0.4);
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.onboard-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(240,165,0,0.3);
+}
+
+.onboard-footer {
+  margin-top: 28px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN / ONBOARDING ═══ -->
+<div class="onboard-screen show" id="onboardScreen">
+
+  <svg class="onboard-logo" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+    <rect width="88" height="88" rx="22" fill="#f0a500"/>
+    <polygon points="44,14 72,38 66,38 66,68 22,68 22,38 16,38" fill="#1a2f6e" opacity="0.15"/>
+    <polygon points="44,17 70,40 64,40 64,66 24,66 24,40 18,40" fill="none" stroke="#1a2f6e" stroke-width="3.5" stroke-linejoin="round"/>
+    <rect x="37" y="50" width="14" height="16" rx="2" fill="#1a2f6e"/>
+    <rect x="30" y="41" width="10" height="9" rx="2" fill="#1a2f6e" opacity="0.6"/>
+    <rect x="48" y="41" width="10" height="9" rx="2" fill="#1a2f6e" opacity="0.6"/>
+    <circle cx="67" cy="67" r="13" fill="#16a34a"/>
+    <polyline points="61,67 65,72 73,62" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+
+  <div class="onboard-title">Tampines Estate<br>Reporter</div>
+  <div class="onboard-sub">AI-powered issue reporting<br>for Tampines residents</div>
+
+  <div class="onboard-form">
+
+    <div class="onboard-field">
+      <label>Your Name</label>
+      <input type="text" id="onboardName" placeholder="e.g. Ahmad, Mei Ling…"
+             autocomplete="name"/>
+    </div>
+
+    <div class="onboard-field">
+      <label>WhatsApp Number</label>
+      <div class="phone-row">
+        <div class="phone-prefix">🇸🇬 +65</div>
+        <input type="tel" id="onboardPhone" placeholder="9123 4567"
+               maxlength="8" inputmode="numeric" autocomplete="tel"/>
+      </div>
+    </div>
+
+    <div class="onboard-field">
+      <label>Home Block / Address</label>
+      <input type="text" id="onboardAddress" placeholder="e.g. Blk 456 Tampines St 42"
+             autocomplete="street-address"/>
+      <div class="field-hint">Required — used to locate your report</div>
+    </div>
+
+    <div class="onboard-error" id="onboardError">
+      Please enter your name, a valid 8-digit WhatsApp number, and your home block/address.
+    </div>
+
+    <button class="onboard-btn" id="getStartedBtn">Get Started →</button>
+
+  </div>
+
+  <div class="onboard-footer">
+    Your info is stored on this device only.<br>
+    We never share your data.
+  </div>
+
+</div>
+
+<script>
+// ── PWA service worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+
+// ── Helpers ──
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('tampines_profile') || 'null'); } catch(e){ return null; }
+}
+
+// ── On load: skip login if already registered ──
+document.addEventListener('DOMContentLoaded', () => {
+  const profile = getProfile();
+  if (profile && profile.name && profile.phone) {
+    window.location.replace('home.html');
+    return;
+  }
+
+  // Enter key shortcuts
+  ['onboardName', 'onboardPhone', 'onboardAddress'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveProfile();
+    });
+  });
+
+  document.getElementById('getStartedBtn').addEventListener('click', saveProfile);
+});
+
+function saveProfile() {
+  const name    = document.getElementById('onboardName').value.trim();
+  const phone   = document.getElementById('onboardPhone').value.trim().replace(/\s/g, '');
+  const address = document.getElementById('onboardAddress').value.trim();
+  const err     = document.getElementById('onboardError');
+
+  if (!name || !/^\d{8}$/.test(phone) || !address) {
+    err.classList.add('show');
+    return;
+  }
+  err.classList.remove('show');
+
+  const profile = { name, phone: '+65' + phone, homeAddress: address };
+  localStorage.setItem('tampines_profile', JSON.stringify(profile));
+
+  // Navigate to home
+  window.location.replace('home.html');
+}
+</script>
+</body>
+</html>

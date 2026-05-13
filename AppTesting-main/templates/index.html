@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tampines Estate Reporter</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<!-- PWA -->
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1a2f6e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EstateReport">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ═══ ONBOARDING ═══ -->
+<div class="onboard-screen" id="onboardScreen">
+  <svg class="onboard-logo" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+    <rect width="88" height="88" rx="22" fill="#f0a500"/>
+    <polygon points="44,14 72,38 66,38 66,68 22,68 22,38 16,38" fill="#1a2f6e" opacity="0.15"/>
+    <polygon points="44,17 70,40 64,40 64,66 24,66 24,40 18,40" fill="none" stroke="#1a2f6e" stroke-width="3.5" stroke-linejoin="round"/>
+    <rect x="37" y="50" width="14" height="16" rx="2" fill="#1a2f6e"/>
+    <rect x="30" y="41" width="10" height="9" rx="2" fill="#1a2f6e" opacity="0.6"/>
+    <rect x="48" y="41" width="10" height="9" rx="2" fill="#1a2f6e" opacity="0.6"/>
+    <circle cx="67" cy="67" r="13" fill="#16a34a"/>
+    <polyline points="61,67 65,72 73,62" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="onboard-title">Tampines Estate<br>Reporter</div>
+  <div class="onboard-sub">AI-powered issue reporting<br>for Tampines residents</div>
+  <div class="onboard-form">
+    <div class="onboard-field">
+      <label>Your Name</label>
+      <input type="text" id="onboardName" placeholder="e.g. Ahmad, Mei Ling..." autocomplete="name"/>
+    </div>
+    <div class="onboard-field">
+      <label>WhatsApp Number</label>
+      <div class="phone-row">
+        <div class="phone-prefix">🇸🇬 +65</div>
+        <input type="tel" id="onboardPhone" placeholder="9123 4567" maxlength="8" inputmode="numeric" autocomplete="tel"/>
+      </div>
+    </div>
+    <div class="onboard-field">
+      <label>Home Block / Address</label>
+      <input type="text" id="onboardAddress" placeholder="e.g. Blk 456 Tampines St 42" autocomplete="street-address"/>
+      <div style="font-size:11px;color:#888;margin-top:4px;">Used when you upload existing photos</div>
+    </div>
+    <div class="onboard-error" id="onboardError">Please enter your name and a valid 8-digit number.</div>
+    <button class="onboard-btn" onclick="saveProfile()">Get Started →</button>
+  </div>
+</div>
+
+<!-- ═══ HIDDEN FILE INPUTS ═══ -->
+<input type="file" id="imageInput"  accept="image/*"         multiple onchange="handleImageFile(this)">
+<input type="file" id="videoInput"  accept="image/*,video/*" multiple onchange="handleUploadFile(this)">
+
+<!-- ═══ CAMERA MODAL ═══ -->
+<div class="modal" id="cameraModal">
+  <div class="modal-box">
+    <div class="modal-title">📷 Take a Photo</div>
+    <video id="cameraPreview" autoplay playsinline style="width:100%;border-radius:14px;background:#000;max-height:300px;object-fit:cover;"></video>
+    <canvas id="cameraCanvas" style="display:none;"></canvas>
+    <img id="capturedImg" style="display:none;width:100%;border-radius:14px;max-height:300px;object-fit:cover;"/>
+    <div class="modal-btn-row">
+      <button class="mbtn mbtn-blue"  id="captureBtn" onclick="capturePhoto()">📸 Capture</button>
+      <button class="mbtn mbtn-gray"  id="retakeBtn"  onclick="retakePhoto()"  style="display:none">🔄 Retake</button>
+      <button class="mbtn mbtn-green" id="useBtn"     onclick="useCapture()"   style="display:none">✅ Use Photo</button>
+      <button class="mbtn mbtn-red"                   onclick="closeCamera()">✖ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INSTALL BANNER ═══ -->
+<div class="install-banner" id="installBanner">
+  <span>📲 Install this app on your phone!</span>
+  <button id="installBtn">Install</button>
+  <button class="install-dismiss" onclick="document.getElementById('installBanner').classList.remove('show')">✕</button>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-title">Sending your report…</div>
+  <div class="loading-steps-list">
+    <div class="ls active" id="ls1"><div class="ls-dot"></div> 🎙️ Reading your voice</div>
+    <div class="ls"        id="ls2"><div class="ls-dot"></div> 📷 Analysing photo</div>
+    <div class="ls"        id="ls3"><div class="ls-dot"></div> 📍 Checking location</div>
+    <div class="ls"        id="ls4"><div class="ls-dot"></div> 🏢 Routing to department</div>
+  </div>
+</div>
+
+<!-- ═══ CLARIFICATION MODAL ═══ -->
+<div class="clarif-modal" id="clarifModal">
+  <div class="clarif-box">
+    <div class="clarif-title">🤔 One Quick Question</div>
+    <div class="clarif-q" id="clarifQuestion"></div>
+    <textarea class="clarif-textarea" id="clarifAnswer" placeholder="Type your answer here…" rows="3"></textarea>
+    <div class="clarif-btn-row">
+      <button class="clarif-skip" onclick="submitClarification(true)">Skip</button>
+      <button class="clarif-submit" onclick="submitClarification(false)">Submit & Route →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SUCCESS ═══ -->
+<div class="success-screen" id="successScreen">
+  <div class="success-header" id="successHeader">
+    <div class="success-icon" id="successIcon">✅</div>
+    <h2 id="successHeadline">Report Sent!</h2>
+    <p id="successTime"></p>
+  </div>
+  <div class="success-body">
+
+    <!-- Safety advice card (shown for HIGH/CRITICAL) -->
+    <div class="safety-card" id="safetyCard">
+      <div class="safety-card-title" id="safetyCardTitle">👉 What to Do Now</div>
+      <div class="safety-steps" id="safetySteps"></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-label">📢 Message to You</div>
+      <div class="resident-message" id="residentMsg"></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-label">⚡ Priority Level</div>
+      <span class="priority-chip" id="priorityVal"></span>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-label">🏢 Agencies Notified</div>
+      <div class="agency-list" id="agencyList"></div>
+    </div>
+
+    <div class="info-card" id="locationCard" style="display:none">
+      <div class="info-card-label">📍 Location</div>
+      <div class="info-card-value" id="locationVal"></div>
+    </div>
+
+    <div class="info-card" id="transcriptCard" style="display:none">
+      <div class="info-card-label">🎙️ What You Said</div>
+      <div class="info-card-value" id="transcriptVal" style="font-style:italic;color:var(--muted);font-weight:600;"></div>
+    </div>
+
+    <div class="info-card" id="whatsappCard" style="display:none">
+      <div class="info-card-label">📱 WhatsApp Confirmation</div>
+      <div class="info-card-value" id="whatsappVal" style="color:var(--green);"></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-label">🔖 Case Reference</div>
+      <div class="info-card-value big" id="caseIdVal"></div>
+    </div>
+
+    <button class="new-report-btn" onclick="resetApp()">↩ Report Another Issue</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<header>
+  <!-- FIX: replaced placeholder "YOUR_ICON_HERE.png" with actual icon path -->
+  <img class="header-logo" src="/static/icon-192.png" alt="App Icon"/>
+  <div class="header-title">
+    <h1>Tampines Estate Reporter</h1>
+    <p>AI-powered community reporting</p>
+  </div>
+  <div class="header-profile" id="headerProfile" style="display:none">
+    <div class="profile-avatar" id="profileAvatar"></div>
+    <div class="profile-name"   id="profileName"></div>
+  </div>
+</header>
+
+<!-- ═══ HOME PAGE ═══ -->
+<main id="homePage">
+
+  <!-- GPS strip -->
+  <div class="gps-strip">
+    <div class="gps-dot searching" id="gpsDot"></div>
+    <span class="gps-text" id="gpsText">Getting your location…</span>
+  </div>
+
+  <!-- Upload address strip — shown only when user uploads existing photo -->
+  <div class="upload-addr-strip" id="uploadAddrStrip" style="display:none">
+    <div style="font-size:12px;color:#666;margin-bottom:4px;">📁 Uploaded photo — enter issue location:</div>
+    <input type="text" id="uploadAddrInput" placeholder="e.g. Blk 456 Tampines St 42"
+      style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;"/>
+  </div>
+
+  <!-- Error box -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- ── STEP 1: Photo / Upload ── -->
+  <div class="section">
+    <div class="step-label">Add a Photo</div>
+    <div class="action-row">
+      <button class="action-btn" id="btnCamera" onclick="openCamera()">
+        <div class="action-icon cam">📷</div>
+        <div class="action-label">Take Photo</div>
+        <div class="action-sub">Open camera</div>
+      </button>
+      <button class="action-btn" id="btnUpload" onclick="document.getElementById('videoInput').click()">
+        <div class="action-icon upload">🖼️</div>
+        <div class="action-label">Upload</div>
+        <div class="action-sub">Photo or video</div>
+      </button>
+    </div>
+
+    <!-- Media gallery -->
+    <div class="media-gallery" id="mediaGallery">
+      <div class="video-wrap" id="videoWrap" style="display:none">
+        <button class="video-remove" onclick="clearVideo()">✕</button>
+        <video id="videoPreview" controls></video>
+      </div>
+      <div class="thumb-scroll" id="thumbScroll"></div>
+      <button class="add-more-pill" id="addMorePill" style="display:none" onclick="document.getElementById('videoInput').click()">
+        ➕ Add more photos
+      </button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── STEP 2: Speak ── -->
+  <div class="section">
+    <div class="step-label">Describe the Problem</div>
+    <button class="speak-btn" id="speakBtn" onclick="toggleRecording()">
+      <div class="speak-icon-ring" id="speakRing">🎙️</div>
+      <div class="speak-text-col">
+        <div class="speak-title" id="speakTitle">Speak Your Problem</div>
+        <div class="speak-sub"   id="speakSub">Tap to start recording</div>
+        <div class="waveform"    id="waveform">
+          <span class="wave-bar"></span><span class="wave-bar"></span>
+          <span class="wave-bar"></span><span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+        </div>
+      </div>
+      <div class="speak-timer" id="speakTimer">00:00</div>
+    </button>
+
+    <!-- Voice preview -->
+    <div class="voice-preview" id="voicePreview">
+      <div class="voice-preview-top">
+        <div class="voice-preview-icon">🎤</div>
+        <div class="voice-preview-text">
+          <strong id="voiceDuration">Voice recorded</strong>
+          <span>Listen below · Tap button above to re-record</span>
+        </div>
+      </div>
+      <audio id="voicePlayer" controls></audio>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── STEP 3: Send ── -->
+  <div class="section">
+    <div class="step-label">Send Report</div>
+    <button class="send-btn" id="sendBtn" onclick="sendReport()">
+      📤 Send Report
+    </button>
+  </div>
+
+</main>
+
+<!-- ═══ PROFILE PAGE ═══ -->
+<div class="profile-page" id="profilePage" style="display:none">
+
+  <!-- Profile hero -->
+  <div class="profile-hero">
+    <div class="profile-hero-avatar" id="profileHeroAvatar"></div>
+    <div class="profile-hero-name"   id="profileHeroName"></div>
+    <div class="profile-hero-phone"  id="profileHeroPhone"></div>
+  </div>
+
+  <div class="profile-body">
+
+    <!-- Info section -->
+    <div class="profile-section-title">ℹ️ Info</div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <span class="profile-row-label">Name</span>
+        <span class="profile-row-value" id="infoName"></span>
+      </div>
+      <div class="profile-divider"></div>
+      <div class="profile-row">
+        <span class="profile-row-label">WhatsApp</span>
+        <span class="profile-row-value" id="infoPhone"></span>
+      </div>
+      <div class="profile-divider"></div>
+      <div class="profile-row">
+        <span class="profile-row-label">Home Address</span>
+        <span class="profile-row-value" id="infoAddress" style="color:#555;font-size:13px;"></span>
+      </div>
+    </div>
+
+    <!-- History section -->
+    <div class="profile-section-title">📋 Report History</div>
+    <div id="historyList"></div>
+
+    <!-- Log out -->
+    <button class="logout-btn" onclick="logOut()">🚪 Log Out</button>
+
+  </div>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-btn active" id="bnavHome" onclick="showPage('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+    <span>Home</span>
+  </button>
+  <button class="bnav-btn" id="bnavProfile" onclick="showPage('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<script src="/static/app.js"></script>
+<script>
+// ── Helper: get profile ──
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('tampines_profile') || 'null'); } catch(e){ return null; }
+}
+
+// ── Apply shell (header + nav visibility) ──
+function applyShell() {
+  const profile = getProfile();
+  const loggedIn = profile && profile.name && profile.phone;
+  document.querySelector('header').style.display     = loggedIn ? '' : 'none';
+  document.getElementById('bottomNav').style.display = loggedIn ? 'flex' : 'none';
+  if (loggedIn) {
+    document.getElementById('homePage').style.display = '';
+  }
+}
+
+// ── Override saveProfile so we catch every login including after logout ──
+function patchSaveProfile() {
+  const orig = window.saveProfile;
+  window.saveProfile = function() {
+    orig.apply(this, arguments);
+    setTimeout(function() {
+      applyShell();
+      document.getElementById('onboardScreen').classList.remove('show');
+      document.getElementById('onboardScreen').style.display = '';
+    }, 100);
+  };
+}
+
+// Run immediately — app.js is loaded before this script
+applyShell();
+patchSaveProfile();
+
+// ── Page switching ──
+function showPage(page) {
+  const homePage    = document.getElementById('homePage');
+  const profilePage = document.getElementById('profilePage');
+  const bnavHome    = document.getElementById('bnavHome');
+  const bnavProfile = document.getElementById('bnavProfile');
+
+  if (page === 'home') {
+    homePage.style.display    = '';
+    profilePage.style.display = 'none';
+    bnavHome.classList.add('active');
+    bnavProfile.classList.remove('active');
+  } else {
+    homePage.style.display    = 'none';
+    profilePage.style.display = '';
+    bnavHome.classList.remove('active');
+    bnavProfile.classList.add('active');
+    loadProfilePage();
+  }
+  window.scrollTo(0, 0);
+}
+
+// ── Profile page data ──
+function loadProfilePage() {
+  const profile = getProfile();
+  const name    = profile ? profile.name  : '—';
+  const phone   = profile ? profile.phone : '—';
+
+  document.getElementById('profileHeroAvatar').textContent = name.slice(0,2).toUpperCase();
+  document.getElementById('profileHeroName').textContent   = name;
+  document.getElementById('profileHeroPhone').textContent  = phone;
+  document.getElementById('infoName').textContent          = name;
+  document.getElementById('infoPhone').textContent         = phone;
+  document.getElementById('infoAddress').textContent       = profile && profile.homeAddress ? profile.homeAddress : '—';
+
+  const historyList = document.getElementById('historyList');
+  const historyKey  = 'tampines_history_' + (phone || 'guest');
+  const raw     = localStorage.getItem(historyKey);
+  const history = raw ? JSON.parse(raw) : [];
+
+  if (history.length === 0) {
+    historyList.innerHTML = `
+      <div class="history-empty">
+        <div class="history-empty-icon">📭</div>
+        <div class="history-empty-text">No reports yet</div>
+        <div class="history-empty-sub">Your submitted reports will appear here.</div>
+      </div>`;
+  } else {
+    historyList.innerHTML = history.slice().reverse().map(r => `
+      <div class="history-card">
+        <div class="history-card-top">
+          <span class="history-case">${r.caseId || '—'}</span>
+          <span class="priority-chip ${(r.priority||'low').toLowerCase()}">${r.priority || 'LOW'}</span>
+        </div>
+        <div class="history-summary">${r.summary || 'Report submitted'}</div>
+        <div class="history-meta">${r.date || ''} · ${r.agencies || ''}</div>
+      </div>`).join('');
+  }
+}
+
+// ── Log out ──
+function logOut() {
+  if (!confirm('Are you sure you want to log out?')) return;
+  // Only remove profile — history is kept under the phone-number key
+  localStorage.removeItem('tampines_profile');
+
+  document.querySelector('header').style.display       = 'none';
+  document.getElementById('bottomNav').style.display   = 'none';
+  document.getElementById('homePage').style.display    = 'none';
+  document.getElementById('profilePage').style.display = 'none';
+
+  document.getElementById('bnavHome').classList.add('active');
+  document.getElementById('bnavProfile').classList.remove('active');
+
+  document.getElementById('onboardName').value  = '';
+  document.getElementById('onboardPhone').value = '';
+  document.getElementById('onboardAddress').value = '';
+  document.getElementById('onboardError').classList.remove('show');
+  document.getElementById('onboardScreen').classList.add('show');
+
+  patchSaveProfile();
+}
+
+// ── Save report to history ──
+window.saveToHistory = function(data) {
+  const profile    = getProfile();
+  const phone      = profile ? profile.phone : 'guest';
+  const historyKey = 'tampines_history_' + phone;
+  const raw        = localStorage.getItem(historyKey);
+  const history    = raw ? JSON.parse(raw) : [];
+  history.push(data);
+  localStorage.setItem(historyKey, JSON.stringify(history));
+};
+</script>
+</body>
+</html>

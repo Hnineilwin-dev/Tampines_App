@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tampines Estate Reporter — Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#FF5722">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EstateReport">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/style.css">
+<style>
+/* ── Edit overlay ── */
+.edit-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,9,0,0.80);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.edit-overlay.show { display: flex; }
+
+.edit-box {
+  background: var(--card);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 28px 22px 44px;
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.edit-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.3rem; font-weight: 800; color: var(--text);
+}
+.edit-field { display: flex; flex-direction: column; gap: 8px; }
+.edit-field label {
+  font-size: 0.8rem; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.edit-field input {
+  width: 100%; padding: 18px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem; font-weight: 700; color: var(--text);
+  outline: none; background: var(--bg);
+  transition: border-color 0.2s;
+}
+.edit-field input:focus { border-color: var(--orange); }
+.edit-error {
+  background: var(--red-light);
+  border: 1.5px solid #EF9A9A;
+  border-radius: var(--r-sm);
+  padding: 12px 16px;
+  font-size: 0.95rem; font-weight: 700; color: var(--red-urgent);
+  display: none;
+}
+.edit-error.show { display: block; }
+.edit-actions { display: flex; gap: 12px; }
+.edit-save {
+  flex: 1; padding: 18px;
+  background: var(--orange); color: white;
+  border: none; border-radius: var(--r-sm);
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.05rem; font-weight: 800; cursor: pointer;
+}
+.edit-save:active { opacity: 0.85; }
+.edit-cancel {
+  padding: 18px 22px;
+  background: #F5F5F5; color: var(--muted);
+  border: none; border-radius: var(--r-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+}
+
+/* ── Edit button on hero ── */
+.edit-btn {
+  padding: 10px 22px;
+  background: rgba(255,255,255,0.22);
+  border: 2px solid rgba(255,255,255,0.50);
+  border-radius: var(--r-sm);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem; font-weight: 800; cursor: pointer;
+  transition: background 0.15s;
+}
+.edit-btn:active { background: rgba(255,255,255,0.35); }
+
+/* ── Stats row ── */
+.stats-row {
+  display: flex; gap: 12px;
+  margin: 0 0 4px;
+}
+.stat-card {
+  flex: 1;
+  background: var(--card);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r);
+  padding: 18px 14px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.stat-num {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.9rem; font-weight: 900;
+  color: var(--orange); line-height: 1;
+}
+.stat-label {
+  font-size: 0.78rem; font-weight: 800;
+  color: var(--muted); margin-top: 4px;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+/* ── Reports shortcut ── */
+.reports-shortcut {
+  background: linear-gradient(135deg, #FF5722, #FF7043);
+  border-radius: var(--r);
+  padding: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+.reports-shortcut:active { opacity: 0.88; }
+.reports-shortcut-left { display: flex; align-items: center; gap: 16px; }
+.reports-shortcut-icon {
+  width: 52px; height: 52px;
+  background: rgba(255,255,255,0.20);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+}
+.reports-shortcut-text { color: white; }
+.reports-shortcut-title { font-family: 'Baloo 2', sans-serif; font-size: 1.05rem; font-weight: 800; }
+.reports-shortcut-sub   { font-size: 0.85rem; opacity: 0.75; font-weight: 700; margin-top: 2px; }
+.reports-shortcut-arrow { color: rgba(255,255,255,0.65); font-size: 1.6rem; font-weight: 700; }
+
+/* ── About card ── */
+.about-card {
+  background: var(--orange-pale);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  display: flex; align-items: center; gap: 16px;
+}
+.about-icon { font-size: 2rem; flex-shrink: 0; }
+.about-text { flex: 1; }
+.about-title { font-size: 0.95rem; font-weight: 800; color: var(--text); }
+.about-sub { font-size: 0.82rem; font-weight: 700; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<!-- ═══ EDIT PROFILE MODAL ═══ -->
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-box">
+    <div class="edit-title">✏️ Edit Profile</div>
+
+    <div class="edit-field">
+      <label>Your Name</label>
+      <input type="text" id="editName" placeholder="Your full name" autocomplete="name"/>
+    </div>
+
+    <div class="edit-field">
+      <label>WhatsApp Number</label>
+      <input type="tel" id="editPhone" placeholder="8-digit number (no +65)"
+             maxlength="8" inputmode="numeric" autocomplete="tel"/>
+    </div>
+
+    <div class="edit-field">
+      <label>Home Block / Address</label>
+      <input type="text" id="editAddress" placeholder="e.g. Blk 456 Tampines St 42"
+             autocomplete="street-address"/>
+    </div>
+
+    <div class="edit-error" id="editError">Please enter your name and a valid 8-digit number.</div>
+
+    <div class="edit-actions">
+      <button class="edit-cancel" onclick="closeEdit()">Cancel</button>
+      <button class="edit-save"   onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <img class="header-logo" src="/static/icon-192.png" alt="App Icon"/>
+  <div class="header-title">
+    <h1>My Profile</h1>
+    <p>Tampines Estate Reporter</p>
+  </div>
+</header>
+
+<!-- ═══ PROFILE PAGE ═══ -->
+<div class="profile-page" id="profilePage">
+
+  <!-- Hero -->
+  <div class="profile-hero">
+    <div class="profile-hero-avatar" id="profileHeroAvatar">?</div>
+    <div class="profile-hero-name"   id="profileHeroName">Loading…</div>
+    <div class="profile-hero-phone"  id="profileHeroPhone"></div>
+    <button class="edit-btn" onclick="openEdit()">✏️ Edit Profile</button>
+  </div>
+
+  <div class="profile-body">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statCritical" style="color:var(--red-urgent);">0</div>
+        <div class="stat-label">Critical</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statResolved" style="color:var(--green);">0</div>
+        <div class="stat-label">This Month</div>
+      </div>
+    </div>
+
+    <!-- Info section -->
+    <div class="profile-section-title">ℹ️ Personal Info</div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <span class="profile-row-label">Name</span>
+        <span class="profile-row-value" id="infoName">—</span>
+      </div>
+      <div class="profile-divider"></div>
+      <div class="profile-row">
+        <span class="profile-row-label">WhatsApp</span>
+        <span class="profile-row-value" id="infoPhone">—</span>
+      </div>
+      <div class="profile-divider"></div>
+      <div class="profile-row">
+        <span class="profile-row-label">Home Address</span>
+        <span class="profile-row-value" id="infoAddress" style="font-size:0.9rem;color:var(--muted);">—</span>
+      </div>
+    </div>
+
+    <!-- Reports shortcut -->
+    <div class="profile-section-title">📋 Reports</div>
+    <div class="reports-shortcut" onclick="window.location.href='/history.html'">
+      <div class="reports-shortcut-left">
+        <div class="reports-shortcut-icon">📋</div>
+        <div class="reports-shortcut-text">
+          <div class="reports-shortcut-title">View Report History</div>
+          <div class="reports-shortcut-sub" id="reportCountText">Loading…</div>
+        </div>
+      </div>
+      <div class="reports-shortcut-arrow">›</div>
+    </div>
+
+    <!-- About -->
+    <div class="about-card">
+      <div class="about-icon">🏢</div>
+      <div class="about-text">
+        <div class="about-title">Tampines Estate Reporter</div>
+        <div class="about-sub">AI-powered reporting for a cleaner, safer Tampines. Powered by Groq AI.</div>
+      </div>
+    </div>
+
+    <!-- Log out -->
+    <button class="logout-btn" onclick="logOut()">🚪 Log Out</button>
+
+  </div>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-btn" id="bnavHome" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+    <span>Home</span>
+  </button>
+  <button class="bnav-btn" id="bnavReports" onclick="window.location.href='/history.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+    </svg>
+    <span>Reports</span>
+  </button>
+  <button class="bnav-btn active" id="bnavProfile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<script>
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('tampines_profile') || 'null'); } catch(e){ return null; }
+}
+(function guardAuth() {
+  const p = getProfile();
+  if (!p || !p.name || !p.phone) { window.location.replace('/login.html'); }
+})();
+
+function goHome() { window.location.href = '/home.html'; }
+
+function renderProfile() {
+  const profile = getProfile();
+  const name    = profile ? profile.name  : '—';
+  const phone   = profile ? profile.phone : '—';
+  const address = profile && profile.homeAddress ? profile.homeAddress : '—';
+
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('profileHeroAvatar').textContent = initials;
+  document.getElementById('profileHeroName').textContent   = name;
+  document.getElementById('profileHeroPhone').textContent  = phone;
+  document.getElementById('infoName').textContent          = name;
+  document.getElementById('infoPhone').textContent         = phone;
+  document.getElementById('infoAddress').textContent       = address;
+
+  // Load history stats
+  const historyKey = 'tampines_history_' + (profile ? profile.phone : 'guest');
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem(historyKey) || '[]'); } catch(e){}
+
+  document.getElementById('statTotal').textContent = history.length;
+
+  const criticalCount = history.filter(r => (r.priority || '').toUpperCase() === 'CRITICAL').length;
+  document.getElementById('statCritical').textContent = criticalCount;
+
+  // This month
+  const now = new Date();
+  const thisMonth = history.filter(r => {
+    if (!r.date) return false;
+    const d = new Date(r.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  document.getElementById('statResolved').textContent = thisMonth;
+
+  const countEl = document.getElementById('reportCountText');
+  if (countEl) {
+    countEl.textContent = history.length === 0
+      ? 'No reports submitted yet'
+      : `${history.length} report${history.length !== 1 ? 's' : ''} submitted`;
+  }
+}
+
+function openEdit() {
+  const profile = getProfile();
+  if (!profile) return;
+  document.getElementById('editName').value    = profile.name;
+  document.getElementById('editPhone').value   = (profile.phone || '').replace('+65', '');
+  document.getElementById('editAddress').value = profile.homeAddress || '';
+  document.getElementById('editError').classList.remove('show');
+  document.getElementById('editOverlay').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('editOverlay').classList.remove('show');
+}
+
+function saveEdit() {
+  const name    = document.getElementById('editName').value.trim();
+  const phone   = document.getElementById('editPhone').value.trim().replace(/\s/g, '');
+  const address = document.getElementById('editAddress').value.trim();
+  const err     = document.getElementById('editError');
+
+  if (!name || !/^\d{8}$/.test(phone)) {
+    err.classList.add('show');
+    return;
+  }
+  err.classList.remove('show');
+
+  const updated = { name, phone: '+65' + phone, homeAddress: address };
+  localStorage.setItem('tampines_profile', JSON.stringify(updated));
+  closeEdit();
+  renderProfile();
+}
+
+function logOut() {
+  if (!confirm('Are you sure you want to log out?')) return;
+  localStorage.removeItem('tampines_profile');
+  window.location.replace('/login.html');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderProfile();
+  ['editName','editPhone','editAddress'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter')  saveEdit();
+      if (e.key === 'Escape') closeEdit();
+    });
+  });
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

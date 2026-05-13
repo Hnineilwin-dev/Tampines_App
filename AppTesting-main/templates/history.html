@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tampines Estate Reporter — Report History</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#FF5722">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EstateReport">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/style.css">
+<style>
+.hist-page { padding: 16px 16px 110px; }
+
+/* ── Page title ── */
+.hist-title-row {
+  margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hist-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.4rem; font-weight: 900;
+  color: var(--text);
+}
+.hist-count-badge {
+  background: var(--orange-pale);
+  border: 1.5px solid var(--border);
+  border-radius: 40px;
+  padding: 6px 16px;
+  font-size: 0.85rem; font-weight: 800;
+  color: var(--orange);
+}
+
+/* ── Filter chips ── */
+.filter-row {
+  display: flex; gap: 8px;
+  overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none;
+  margin-bottom: 16px;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 12px 20px;
+  border-radius: 40px;
+  border: 1.5px solid var(--border2);
+  background: var(--card);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem; font-weight: 800;
+  color: var(--muted);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.18s;
+  min-height: 48px;
+}
+.filter-chip.active {
+  background: var(--orange); border-color: var(--orange);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255,87,34,0.30);
+}
+
+/* ── Report card ── */
+.rcard {
+  background: var(--card);
+  border-radius: var(--r);
+  border: 1.5px solid var(--border2);
+  margin-bottom: 16px; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.rcard:active { transform: scale(0.982); box-shadow: none; }
+
+/* Image */
+.rcard-imgwrap { position: relative; }
+.rcard-img { width: 100%; height: 200px; object-fit: cover; display: block; }
+
+.rcard-no-img {
+  width: 100%; height: 110px;
+  background: linear-gradient(135deg, #FF5722 0%, #FF7043 50%, #FF8A65 100%);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.rcard-no-img::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 75% 30%, rgba(255,255,255,0.12) 0%, transparent 60%);
+}
+.rcard-no-img-inner {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px; z-index: 1;
+}
+.rcard-no-img-icon { font-size: 2rem; opacity: 0.75; }
+.rcard-no-img-label {
+  font-size: 0.72rem; font-weight: 900;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+
+/* Priority badge */
+.rcard-priority-overlay {
+  position: absolute; top: 12px; right: 12px;
+  padding: 7px 16px; border-radius: 40px;
+  font-size: 0.75rem; font-weight: 900;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; gap: 7px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+}
+.rcard-priority-overlay.critical { background: rgba(211,47,47,0.92); color: #fff; }
+.rcard-priority-overlay.high     { background: rgba(230,74,25,0.92); color: #fff; }
+.rcard-priority-overlay.medium   { background: rgba(245,127,23,0.92); color: #fff; }
+.rcard-priority-overlay.low      { background: rgba(46,125,50,0.92);  color: #fff; }
+.prio-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.8); flex-shrink: 0; }
+.rcard-priority-overlay.critical .prio-dot,
+.rcard-priority-overlay.high     .prio-dot { animation: pdot 1.5s ease-in-out infinite; }
+@keyframes pdot { 0%,100%{opacity:0.5;transform:scale(1);}50%{opacity:1;transform:scale(1.4);} }
+
+/* Case ID overlay */
+.rcard-case-overlay {
+  position: absolute; bottom: 12px; left: 12px;
+  background: rgba(26,9,0,0.70); color: rgba(255,255,255,0.90);
+  font-size: 0.75rem; font-weight: 900;
+  padding: 6px 14px; border-radius: 20px;
+  letter-spacing: 0.8px; backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Card body */
+.rcard-body { padding: 18px 18px 20px; }
+.rcard-summary {
+  font-size: 1rem; font-weight: 800; color: var(--text);
+  line-height: 1.55; margin-bottom: 14px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Info grid */
+.rcard-info-grid {
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.rcard-info-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
+}
+.rcard-info-row:last-child { border-bottom: none; }
+.rcard-info-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.icon-agency { background: var(--orange-pale); }
+.icon-loc    { background: var(--gold-light); }
+.icon-time   { background: var(--green-light); }
+.icon-voice  { background: #F3E5F5; }
+
+.rcard-info-text { flex: 1; min-width: 0; }
+.rcard-info-label {
+  font-size: 0.72rem; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;
+}
+.rcard-info-val {
+  font-size: 0.9rem; font-weight: 700; color: var(--text);
+  line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Transcript */
+.rcard-transcript {
+  background: var(--orange-pale);
+  border-left: 4px solid var(--orange);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 12px 16px;
+  font-size: 0.9rem; font-weight: 700; color: var(--muted);
+  font-style: italic; line-height: 1.55; margin-top: 14px;
+}
+
+/* Empty state */
+.hist-empty { text-align: center; padding: 60px 24px 40px; }
+.hist-empty-icon { font-size: 5rem; margin-bottom: 16px; }
+.hist-empty-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.3rem; font-weight: 900; color: var(--text); margin-bottom: 8px;
+}
+.hist-empty-sub { font-size: 1rem; color: var(--muted); font-weight: 700; line-height: 1.5; }
+
+/* Clear button */
+.clear-btn {
+  width: 100%; margin-top: 10px; padding: 18px;
+  background: var(--red-light);
+  border: 1.5px solid #EF9A9A; border-radius: var(--r);
+  color: var(--red-urgent);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem; font-weight: 800; cursor: pointer;
+  transition: background 0.15s;
+}
+.clear-btn:active { background: #FFCDD2; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <img class="header-logo" src="/static/icon-192.png" alt="App Icon"/>
+  <div class="header-title">
+    <h1>My Reports</h1>
+    <p>Tampines Estate Reporter</p>
+  </div>
+</header>
+
+<!-- ═══ HISTORY PAGE ═══ -->
+<div class="hist-page">
+
+  <div class="hist-title-row">
+    <div class="hist-title">Report History</div>
+    <div class="hist-count-badge" id="histCount">0 reports</div>
+  </div>
+
+  <div class="filter-row" id="filterRow">
+    <button class="filter-chip active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-chip" onclick="setFilter('critical',this)">🚨 Critical</button>
+    <button class="filter-chip" onclick="setFilter('high',this)">⚠️ High</button>
+    <button class="filter-chip" onclick="setFilter('medium',this)">🟡 Medium</button>
+    <button class="filter-chip" onclick="setFilter('low',this)">🟢 Low</button>
+  </div>
+
+  <div id="histList"></div>
+
+  <button class="clear-btn" id="clearBtn" onclick="clearHistory()" style="display:none;">
+    🗑️ Clear All History
+  </button>
+
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="bottom-nav">
+  <button class="bnav-btn" onclick="window.location.href='/home.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+    <span>Home</span>
+  </button>
+  <button class="bnav-btn active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+    </svg>
+    <span>Reports</span>
+  </button>
+  <button class="bnav-btn" onclick="window.location.href='/profile.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<script>
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem('tampines_profile') || 'null'); } catch(e){ return null; }
+}
+(function guardAuth() {
+  const p = getProfile();
+  if (!p || !p.name || !p.phone) { window.location.replace('/login.html'); }
+})();
+
+let allHistory = [];
+let currentFilter = 'all';
+
+function loadHistory() {
+  const profile = getProfile();
+  const phone   = profile ? profile.phone : 'guest';
+  try { allHistory = JSON.parse(localStorage.getItem('tampines_history_' + phone) || '[]'); }
+  catch(e) { allHistory = []; }
+  renderHistory();
+}
+
+function setFilter(p, btn) {
+  currentFilter = p;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  const list     = document.getElementById('histList');
+  const countEl  = document.getElementById('histCount');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let filtered = allHistory.slice().reverse();
+  if (currentFilter !== 'all') {
+    filtered = filtered.filter(r => (r.priority||'LOW').toLowerCase() === currentFilter);
+  }
+
+  clearBtn.style.display = allHistory.length > 0 ? 'block' : 'none';
+  countEl.textContent = filtered.length
+    ? `${filtered.length} report${filtered.length !== 1 ? 's' : ''}`
+    : '0 reports';
+
+  if (!filtered.length) {
+    list.innerHTML = `
+      <div class="hist-empty">
+        <div class="hist-empty-icon">${currentFilter === 'all' ? '📭' : '🔍'}</div>
+        <div class="hist-empty-title">${currentFilter === 'all' ? 'No reports yet' : 'No ' + currentFilter + ' reports'}</div>
+        <div class="hist-empty-sub">${currentFilter === 'all'
+          ? 'Your submitted reports will appear here.'
+          : 'Try selecting a different filter.'}</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(r => {
+    const prio  = (r.priority || 'LOW').toLowerCase();
+    const pLabel = (r.priority || 'LOW').toUpperCase();
+
+    const imgBlock = r.thumbnail
+      ? `<img class="rcard-img" src="${r.thumbnail}" alt="Report photo" loading="lazy"/>`
+      : `<div class="rcard-no-img"><div class="rcard-no-img-inner"><div class="rcard-no-img-icon">📷</div><div class="rcard-no-img-label">No photo</div></div></div>`;
+
+    const agencyBlock = r.agencies ? `
+      <div class="rcard-info-row">
+        <div class="rcard-info-icon icon-agency">🏢</div>
+        <div class="rcard-info-text">
+          <div class="rcard-info-label">Agencies Notified</div>
+          <div class="rcard-info-val">${r.agencies}</div>
+        </div>
+      </div>` : '';
+
+    const locBlock = r.location ? `
+      <div class="rcard-info-row">
+        <div class="rcard-info-icon icon-loc">📍</div>
+        <div class="rcard-info-text">
+          <div class="rcard-info-label">Location</div>
+          <div class="rcard-info-val">${r.location}</div>
+        </div>
+      </div>` : '';
+
+    const dateBlock = r.date ? `
+      <div class="rcard-info-row">
+        <div class="rcard-info-icon icon-time">🕐</div>
+        <div class="rcard-info-text">
+          <div class="rcard-info-label">Submitted</div>
+          <div class="rcard-info-val">${r.date}</div>
+        </div>
+      </div>` : '';
+
+    const transcriptBlock = r.transcript
+      ? `<div class="rcard-transcript">"${r.transcript}"</div>` : '';
+
+    return `
+      <div class="rcard">
+        <div class="rcard-imgwrap">
+          ${imgBlock}
+          <div class="rcard-priority-overlay ${prio}"><span class="prio-dot"></span>${pLabel}</div>
+          <div class="rcard-case-overlay">${r.caseId || '—'}</div>
+        </div>
+        <div class="rcard-body">
+          <div class="rcard-summary">${r.summary || 'Report submitted'}</div>
+          <div class="rcard-info-grid">
+            ${agencyBlock}
+            ${locBlock}
+            ${dateBlock}
+          </div>
+          ${transcriptBlock}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function clearHistory() {
+  if (!confirm('Clear all report history? This cannot be undone.')) return;
+  const p = getProfile();
+  localStorage.removeItem('tampines_history_' + (p ? p.phone : 'guest'));
+  allHistory = [];
+  renderHistory();
+}
+
+document.addEventListener('DOMContentLoaded', loadHistory);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
